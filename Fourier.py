@@ -1,7 +1,7 @@
 from manim import *
 class FourierScene(Scene):
     conf= {
-        'slow_factor': .5,
+        'slow_factor': .01,
         'wait_before_start': None,
         'texto': r'\rm R',
         'n_vectors': 10,
@@ -15,22 +15,31 @@ class FourierScene(Scene):
         }
     }
     def setup(self):
-        self.slow_factor_tracker= ValueTracker()
-        self.vector_clock=ValueTracker()
+        self.slow_factor_tracker= ValueTracker(self.conf['slow_factor'])
+        self.vector_clock=ValueTracker(0)
     def construct(self):
+        self.add_vector_clock()
+        self.add(self.vector_clock)
         self.add_vector_circles_path()
         if self.conf['wait_before_start'] is not None:
             self.wait(self.conf['wait_before_start'])
         else:
             self.wait(1)
+    def get_slow_factor(self):
+        return self.slow_factor_tracker.get_value()
     def add_vector_clock(self):
         self.vector_clock.add_updater(
-            lambda m, dt: m.increment_value(self.conf['slow_factor'])
+            lambda m, dt: m.increment_value(
+                self.get_slow_factor()* dt
+            )
         )
+    def get_vector_time(self): 
+        return self.vector_clock.get_value()
     def add_vector_circles_path(self):
         path= self.get_path()
         coeffs= self.get_coefficients_of_path(path)
-        vectors= self.get_rotating_vectors()
+        vectors= self.get_rotating_vectors(coefficients=coeffs)
+        
         self.add(
             path,
             vectors
@@ -95,7 +104,7 @@ class FourierScene(Scene):
         vector.add_updater(self.update_rotating_vector)
         return vector
     def update_rotating_vector(self, vector, dt):
-        time= self.vector_clock.get_value()
+        time= self.get_vector_time()
         coef = vector.coefficient
         freq = vector.freq
         phase= np.log(coef).imag
